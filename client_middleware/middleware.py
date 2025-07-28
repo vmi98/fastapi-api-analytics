@@ -27,7 +27,7 @@ def create_tracking_middleware(api_key: str):
 
         response = await call_next(request)
 
-        log = {'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        log = {'created_at': datetime.now().isoformat(),
                'method': request.method,
                'endpoint': request.url.path,
                'ip': request.client.host if request.client else None,
