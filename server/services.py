@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import Depends
 from sqlmodel import select, func, distinct, cast, Session, Float
+from sqlalchemy import func
 from sqlalchemy.sql.expression import CTE
 
 
@@ -28,16 +29,16 @@ def get_time_series(session: Session, api_filtered: CTE) -> List[dict]:
     st_code_cond = api_filtered.c.status_code.between(400, 599)
     time_series_db = session.exec(
                 select(
-                    func.date_trunc('day', api_filtered.c.created_at
-                                    ).label("timestamp"),
+                    func.strftime('%Y-%m-%d', api_filtered.c.created_at
+                                  ).label("timestamp"),
                     func.count(api_filtered.c.id).label("requests"),
                     func.avg(api_filtered.c.process_time).label("avg_time"),
                     (func.count().filter(st_code_cond) /
                         cast(func.count(api_filtered.c.id), Float
                              )).label('error_rate')
                 )
-                .group_by(func.date_trunc('day', api_filtered.c.created_at))
-                .order_by(func.date_trunc('day', api_filtered.c.created_at))
+                .group_by(func.strftime('%Y-%m-%d', api_filtered.c.created_at))
+                .order_by(func.strftime('%Y-%m-%d', api_filtered.c.created_at))
                 .limit(5)
         ).all()
 
@@ -45,8 +46,8 @@ def get_time_series(session: Session, api_filtered: CTE) -> List[dict]:
         {
             "timestamp": ts,
             "requests": req,
-            "avg_time": round(avg, 3),
-            "error_rate": round(rate, 3)
+            "avg_time": round(avg, 2),
+            "error_rate": round(rate, )
         }
         for ts, req, avg, rate in time_series_db
     ]
@@ -63,16 +64,16 @@ def get_res_time_stats(session: Session, api_filtered: CTE
     )
     min_time, avg_time, max_time = session.exec(stmt).one()
     return {
-        "min": round(min_time, 3),
-        "avg": round(avg_time, 3),
-        "max": round(max_time, 3),
+        "min": round(min_time, 2),
+        "avg": round(avg_time, 2),
+        "max": round(max_time, 2),
     }
 
 
 def get_unique_ips(session: Session, api_filtered: CTE
                    ) -> int:
     statement = select(func.count(distinct(api_filtered.c.ip)))
-    unique_ips = session.exec(statement).scalar()
+    unique_ips = session.exec(statement).one()
     return unique_ips
 
 
@@ -81,9 +82,9 @@ def get_errors_rate(session: Session, api_filtered: CTE, total_requests: int
     errors = session.exec(
             select(func.count(api_filtered.c.id))
             .where(api_filtered.c.status_code.between(400, 599))
-            ).scalar()
+            ).one()
     errors_per_100_req = (errors / total_requests) * 100
-    return errors_per_100_req
+    return round(errors_per_100_req, 2)
 
 
 def get_method_usage(session: Session, api_filtered: CTE
@@ -144,10 +145,10 @@ def get_endpoint_stats(session: Session, api_filtered: CTE
                 {
                     "endpoint": endpoint,
                     "requests": req,
-                    "avg_time": avg_time,
-                    "error_count": error_count
+                    "avg_time": round(avg_time, 2),
+                    "errors_count": round(errors_count)
                 }
-                for endpoint, req, avg_time, error_count in endpoint_stats_db
+                for endpoint, req, avg_time, errors_count in endpoint_stats_db
             ]
     return endpoint_stats
 
@@ -159,7 +160,7 @@ def compute_summary(session, api_key: APIKey = Depends(get_api_key)
 
     total_requests = session.exec(
         select(func.count()).select_from(api_filtered)
-        ).scalar()
+        ).one()
 
     if not total_requests:
         return EMPTY_DASHBOARD
