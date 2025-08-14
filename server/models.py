@@ -1,6 +1,7 @@
-from typing import Annotated
+from typing import Annotated, Dict, List
 
 from fastapi import Depends
+from pydantic import BaseModel
 from sqlmodel import Field, Session, SQLModel, create_engine
 
 class APIKey(SQLModel, table=True):
@@ -27,15 +28,44 @@ class LogOutput(LogBase):
 
 class Log(LogBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    api_key_id: int | None = Field(foreign_key='apikey.id')
+    api_key_id: int | None = Field(foreign_key="apikey.id")
 
 
-class Summary(SQLModel):
-    max_process_time: float | None = None
-    min_process_time: float | None = None
-    avg_process_time: float | None = None
+class SummaryModel(BaseModel):
+    total_requests: int | None = None
+    unique_ips: int | None = None
+    avg_response_time: float | None = None
+    min_response_time: float | None = None
+    max_response_time: float | None = None
+    error_rate: float | None = None
 
 
+class EndpointStatsEntry(BaseModel):
+    endpoint: str | None = None
+    requests: int | None = None
+    avg_time: float | None = None
+    errors_count: int | None = None
+
+
+class TopIpEntry(BaseModel):
+    ip: str | None = None
+    requests: int | None = None
+
+
+class TimeSeriesEntry(BaseModel):
+    timestamp: str | None = None
+    requests: int | None = None
+    avg_time: float | None = None
+    error_rate: float | None = None
+
+
+class DashboardResponse(SQLModel):
+    summary: SummaryModel
+    method_usage: Dict[str, int]
+    endpoint_stats: List[EndpointStatsEntry]
+    status_codes: Dict[int, int]
+    top_ips: List[TopIpEntry]
+    time_series: List[TimeSeriesEntry]
 
 
 sqlite_file_name = "database.db"

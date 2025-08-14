@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlmodel import select
 
 from .auth import get_api_key
-from .models import APIKey, Log, LogInput, LogOutput, SessionDep, Summary
+from .models import APIKey, Log, LogInput, LogOutput, SessionDep, DashboardResponse
 from .services import compute_summary
 
 
@@ -26,9 +26,9 @@ def create_log(log: LogInput,
 @router.get("/dashboard")
 def show_dashboard(session: SessionDep,
                    api_key: APIKey = Depends(get_api_key)
-                   ) -> Summary:
+                   ) -> DashboardResponse:
     summary_data = compute_summary(session, api_key)
-    return Summary(**summary_data)
+    return DashboardResponse(**summary_data)
 
 
 @router.get("/raw_logs", response_model=list[LogOutput])
