@@ -7,6 +7,22 @@ from sqlalchemy.sql.expression import CTE
 from .auth import get_api_key
 from .models import Log, APIKey, DashboardResponse
 
+EMPTY_DASHBOARD = {
+            "summary": {
+                "total_requests": 0,
+                "unique_ips": 0,
+                "avg_response_time": None,
+                "min_response_time": None,
+                "max_response_time": None,
+                "error_rate": 0.0
+            },
+            "method_usage": {},
+            "endpoint_stats": [],
+            "status_codes": {},
+            "top_ips": [],
+            "time_series": []
+        }
+
 
 def get_time_series(session: Session, api_filtered: CTE) -> List[dict]:
     st_code_cond = api_filtered.c.status_code.between(400, 599)
@@ -145,22 +161,8 @@ def compute_summary(session, api_key: APIKey = Depends(get_api_key)
         select(func.count()).select_from(api_filtered)
         ).scalar()
 
-    if total_requests == 0:
-        return {
-            "summary": {
-                "total_requests": 0,
-                "unique_ips": 0,
-                "avg_response_time": None,
-                "min_response_time": None,
-                "max_response_time": None,
-                "error_rate": 0.0
-            },
-            "method_usage": {},
-            "endpoint_stats": [],
-            "status_codes": {},
-            "top_ips": [],
-            "time_series": []
-        }
+    if not total_requests:
+        return EMPTY_DASHBOARD
 
     res_time_stats = get_res_time_stats(session, api_filtered)
     error_rate = get_errors_rate(session, api_filtered, total_requests)
