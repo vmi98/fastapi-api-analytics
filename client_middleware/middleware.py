@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 import httpx
 from time import perf_counter
 from datetime import datetime
@@ -6,7 +8,8 @@ from fastapi import Request, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
 
-API_BASE = 'http://127.0.0.1:8000'
+load_dotenv()
+API_BASE = os.environ.get('API_BASE')
 
 
 async def send_log(log: dict, api_key: str) -> None:
