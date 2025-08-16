@@ -18,7 +18,7 @@ async def send_log(log: dict, api_key: str) -> None:
             await client.post(f"{API_BASE}/track",
                               json=log,
                               headers={'X-API-Key': api_key})
-    except httpx.HTTPError:
+    except Exception:
         pass
 
 
