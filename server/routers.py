@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlmodel import select
 
 from .auth import get_api_key
-from .models import APIKey, Log, LogInput, LogOutput, SessionDep, DashboardResponse
+from .models import (
+    APIKey, Log, LogInput, LogOutput, SessionDep, DashboardResponse
+)
 from .services import compute_summary
 
 
@@ -16,7 +18,7 @@ def create_log(log: LogInput,
                session: SessionDep,
                api_key: APIKey = Depends(get_api_key)
                ) -> Response:
-    db_log = Log(**log.dict(), api_key_id=api_key.id)
+    db_log = Log(**log.model_dump(), api_key_id=api_key.id)
     session.add(db_log)
     session.commit()
     session.refresh(db_log)
