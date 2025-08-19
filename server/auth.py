@@ -12,6 +12,8 @@ from sqlmodel import select
 from .models import APIKey, SessionDep
 
 
+MAX_API_KEY_LEN = 64
+
 def generate_api_key() -> str:
     return str(uuid.uuid4())
 
@@ -19,7 +21,7 @@ def generate_api_key() -> str:
 def get_api_key(session: SessionDep,
                 api_key: Optional[str] = Header(None, alias="X-API-Key"),
                 ) -> APIKey:
-    if not api_key:
+    if not api_key or len(api_key) > MAX_API_KEY_LEN:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing API Key",
