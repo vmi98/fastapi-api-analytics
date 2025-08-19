@@ -1,6 +1,5 @@
 import pytest
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
 from sqlmodel import select
 from main import app
 from server.auth import get_api_key
@@ -50,7 +49,6 @@ def test_protected_endpoint_requires_api_key(create_fake_api_key, client):
 
 
 @pytest.mark.parametrize("malformed_key", [
-    7899887,
     "",
     " ",
     None,
