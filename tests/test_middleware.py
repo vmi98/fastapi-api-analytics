@@ -1,5 +1,5 @@
 import pytest
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient, ASGITransport
 
@@ -7,6 +7,7 @@ from client_middleware.middleware import create_tracking_middleware, send_log
 
 
 SEND_LOG = "client_middleware.middleware.send_log"
+
 
 # Unit tests
 class FakeRequest:
@@ -79,8 +80,11 @@ async def test_middleware_missing_client_info(monkeypatch):
 @pytest.mark.asyncio
 async def test_send_log_swallow_exception(monkeypatch):
     class FakeAsyncClient:
-        async def __aenter__(self): return self
-        async def __aexit__(self, exc_type, exc, tb): pass
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
 
         async def post(self, *args, **kwargs):
             raise Exception("Network error")
@@ -108,7 +112,8 @@ def app():
 async def test_middleware_integration(app):
     with patch(SEND_LOG, new_callable=AsyncMock) as mock_send_log:
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(transport=transport,
+                               base_url="http://test") as client:
             response = await client.get("/ping")
 
         assert response.status_code == 200

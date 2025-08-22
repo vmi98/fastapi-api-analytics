@@ -34,7 +34,7 @@ def create_tracking_middleware(api_key: str):
                'method': request.method,
                'endpoint': request.url.path,
                'ip': request.client.host if request.client else None,
-               'process_time': (perf_counter() - start_time)*1000,  # in miliseconds
+               'process_time': (perf_counter() - start_time) * 1000,
                'status_code': response.status_code
                }
         await send_log(log, api_key)

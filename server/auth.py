@@ -14,6 +14,7 @@ from .models import APIKey, SessionDep
 
 MAX_API_KEY_LEN = 64
 
+
 def generate_api_key() -> str:
     return str(uuid.uuid4())
 

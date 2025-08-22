@@ -1,7 +1,6 @@
 import pytest
 from fastapi import HTTPException
 from sqlmodel import select
-from main import app
 from server.auth import get_api_key
 from server.models import APIKey
 
@@ -52,7 +51,7 @@ def test_protected_endpoint_requires_api_key(create_fake_api_key, client):
     "",
     " ",
     None,
-    "a"*1000,
+    "a" * 1000,
     "invalid_api_key"
 ])
 def test_edge_cases(malformed_key, session):
