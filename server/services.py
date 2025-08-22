@@ -63,11 +63,15 @@ def get_res_time_stats(session: Session, api_filtered: CTE
         func.max(api_filtered.c.process_time)
     )
     min_time, avg_time, max_time = session.exec(stmt).one()
-    return {
-        "min": round(min_time, 2),
-        "avg": round(avg_time, 2),
-        "max": round(max_time, 2),
-    }
+
+    if all([min_time, avg_time, max_time]):
+        return {
+            "min": round(min_time, 2),
+            "avg": round(avg_time, 2),
+            "max": round(max_time, 2),
+        }
+    else:
+        return {"min": 0, "avg": 0, "max": 0}
 
 
 def get_unique_ips(session: Session, api_filtered: CTE
@@ -83,7 +87,10 @@ def get_errors_rate(session: Session, api_filtered: CTE, total_requests: int
             select(func.count(api_filtered.c.id))
             .where(api_filtered.c.status_code.between(400, 599))
             ).one()
-    errors_per_100_req = (errors / total_requests) * 100
+    if total_requests:
+        errors_per_100_req = (errors / total_requests) * 100
+    else:
+        errors_per_100_req = 0
     return round(errors_per_100_req, 2)
 
 
@@ -180,6 +187,6 @@ def compute_summary(session, api_key: APIKey = Depends(get_api_key)
             "method_usage": get_method_usage(session, api_filtered),
             "endpoint_stats": get_endpoint_stats(session, api_filtered),
             "status_codes": get_status_codes(session, api_filtered),
-            "top_ips": get_top_ips(session, api_filtered),
+            "top_ips": get_top_ips(session, api_filtered), 
             "time_series": get_time_series(session, api_filtered)
             }
