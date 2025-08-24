@@ -31,12 +31,13 @@ class LogBase(SQLModel):
 
     @model_validator(mode='before')
     def sanitize_log(cls, values):
-        if values.get('endpoint'):
-            values['endpoint'] = clean_string(values['endpoint'].lower())
+        if isinstance(values, dict):
+            if values.get('endpoint'):
+                values['endpoint'] = clean_string(values['endpoint'].lower())
 
-        if values.get('ip'):
-            values['ip'] = clean_string(values['ip'])
-
+            if values.get('ip'):
+                values['ip'] = clean_string(values['ip'])
+            return values
         return values
 
     @field_validator('method', mode='before')
@@ -50,7 +51,11 @@ class LogBase(SQLModel):
 
     @model_validator(mode='before')
     def not_null_check(cls, values):
-        for k, v in values.items():
+        if isinstance(values, dict):
+            items = values.items()
+        else:
+            items = values.dict().items()
+        for k, v in items:
             if v in NULLABLE_VALUES and k != "ip":
                 raise ValueError(f"{k} cannot be empty")
         return values
@@ -62,9 +67,18 @@ class LogBase(SQLModel):
                 value = datetime.fromisoformat(value.replace("Z", "+00:00"))
             except Exception:
                 raise ValueError("created_at must be a valid datetime string")
+        elif isinstance(value, datetime):
+            return value
         else:
-            raise ValueError("created_at must be ISO datetime string")
+            raise ValueError("created_at must be ISO datetime string or datetime object")
         return value
+
+    @field_validator("process_time", mode="before")
+    def round_process_time(cls, value):
+        try:
+            return round(float(value), 2)
+        except Exception:
+            raise ValueError("process_time must be a float")
 
 
 class LogOutput(LogBase):
