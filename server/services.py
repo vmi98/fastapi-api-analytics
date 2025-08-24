@@ -45,7 +45,7 @@ def get_time_series(session: Session, api_filtered: CTE) -> List[dict]:
             "timestamp": ts,
             "requests": req,
             "avg_time": round(avg, 2),
-            "error_rate": round(rate, )
+            "error_rate": round(rate, 2)
         }
         for ts, req, avg, rate in time_series_db
     ]
