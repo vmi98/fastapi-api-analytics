@@ -29,7 +29,13 @@ COPY --from=builder /app /app
 
 ENV PATH="/app/.venv/bin:${PATH}"
 
-RUN groupadd -r app && useradd -r -g app -m app
+# Create database directory and set permissions for app user
+RUN mkdir -p /app/db && \
+    groupadd -r app && \
+    useradd -r -g app -m app && \
+    chown -R app:app /app/db && \
+    chmod -R u+rw /app/db
+
 ENV HOME=/home/app
 
 USER app
