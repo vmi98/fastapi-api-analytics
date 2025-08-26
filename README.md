@@ -1,4 +1,4 @@
-# API Analytics App
+# API Analytics
 
 FastAPI analytics service that tracks API usage (endpoints, response times, errors, etc) and displays insights. NOTE: Compatible only with FastAPI. 
 
@@ -171,4 +171,5 @@ docker run --rm fastapi-analytics uv run flake8 .  # linting
 ## Deployment Notes
 
 Dockerized and deployed on [Render](https://fastapi-api-analytics.onrender.com/)
+
 [API Docs](https://fastapi-api-analytics.onrender.com/docs)
