@@ -7,7 +7,7 @@ from fastapi import (
     HTTPException,
     status,
 )
-from sqlmodel import select
+from sqlalchemy import select
 
 from .models import APIKey, SessionDep
 
@@ -28,9 +28,7 @@ def get_api_key(session: SessionDep,
             detail="Missing API Key",
         )
 
-    key_obj = session.exec(
-        select(APIKey).where(APIKey.api_key == api_key)
-    ).first()
+    key_obj = session.scalars(select(APIKey).where(APIKey.api_key == api_key)).first()
 
     if not key_obj:
         raise HTTPException(
