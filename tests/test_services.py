@@ -190,13 +190,13 @@ def test_get_method_usage_with_logs(session, cte):
 
 
 def test_get_errors_rate_no_logs(session, empty_cte):
-    result = get_errors_rate(session, empty_cte, total_requests=0)
+    result = get_errors_rate(session, empty_cte)
 
     assert result == 0.00
 
 
 def test_get_errors_rate_with_logs(session, cte):
-    result = get_errors_rate(session, cte, total_requests=7)
+    result = get_errors_rate(session, cte)
 
     assert result == 42.86
 
@@ -222,7 +222,7 @@ def test_get_res_time_stats_no_logs(session, empty_cte):
 def test_get_res_time_stats_with_logs(session, cte):
     result = get_res_time_stats(session, cte)
 
-    assert result == {"min": 0.1, "avg": 0.4, "max": 0.7}
+    assert result == {"min": 0.10, "avg": 0.40, "max": 0.70}
 
 
 def test_get_time_series_no_logs(session, empty_cte):

@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError, TypeAdapter
-from server.models import APIKey, DashboardResponse, LogOutput
+from server.models import APIKey
+from server.schemas import DashboardResponse, LogOutput
 
 
 @pytest.fixture(scope="function")

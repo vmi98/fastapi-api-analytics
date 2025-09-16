@@ -1,8 +1,14 @@
 import pytest
-from sqlmodel import SQLModel, Session, create_engine
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
+import os
+from server.models import get_session, Base
+
+os.environ["TESTING"] = "1"
+
 from main import app
-from server.models import get_session
+
 
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
@@ -15,10 +21,10 @@ connection = engine.connect()
 
 @pytest.fixture(scope="function", name="session")
 def session_fixture():
-    SQLModel.metadata.create_all(connection)
+    Base.metadata.create_all(connection)
     with Session(connection) as session:
         yield session
-    SQLModel.metadata.drop_all(connection)
+    Base.metadata.drop_all(connection)
 
 
 @pytest.fixture(scope="function", name="client")

@@ -1,6 +1,6 @@
 import pytest
 from fastapi import HTTPException
-from sqlmodel import select
+from sqlalchemy import select
 from server.auth import get_api_key
 from server.models import APIKey
 
@@ -29,7 +29,7 @@ def test_generate_key_route(monkeypatch, client, session):
     assert response.json() == fake_key
 
     statement = select(APIKey).where(APIKey.api_key == fake_key)
-    generated_key_db = session.exec(statement).first()
+    generated_key_db = session.scalars(statement).first()
     assert generated_key_db is not None
     assert generated_key_db.api_key == fake_key
 

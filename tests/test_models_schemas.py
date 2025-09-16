@@ -1,9 +1,7 @@
 import pytest
 from pydantic import ValidationError
-from server.models import (
-    APIKey, Log, SummaryModel,
-    EndpointStatsEntry, TopIpEntry, TimeSeriesEntry
-)
+from server.models import APIKey, Log
+from server.schemas import SummaryModel, EndpointStatsEntry, TopIpEntry, TimeSeriesEntry
 
 
 @pytest.fixture(scope="function")
@@ -52,7 +50,7 @@ def test_log_model_creation(create_api_key, session,
         ("process_time", -1),
         ("created_at", 123),
         ("method", ""),
-        ("ip", " "),
+        ("ip", "knmk"),
         ("endpont", "")
     ]
 )
