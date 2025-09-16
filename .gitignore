@@ -6,6 +6,7 @@ dist/
 wheels/
 *.egg-info
 database.db
+.coverage
 # Virtual environments
 .venv
 
