@@ -43,8 +43,8 @@ def get_time_series(session: Session, filtered_logs: CTE) -> list[dict]:
         {
             "timestamp": ts,
             "requests": req,
-            "avg_time": round(avg, 2),
-            "error_rate": round(rate, 2)
+            "avg_time": avg,
+            "error_rate": rate
         }
         for ts, req, avg, rate in time_series_db
     ]
@@ -62,9 +62,9 @@ def get_res_time_stats(session: Session, filtered_logs: CTE) -> dict[str, float]
 
     if all([min_time, avg_time, max_time]):
         return {
-            "min": round(float(min_time), 2),
-            "avg": round(float(avg_time), 2),
-            "max": round(float(max_time), 2),
+            "min": min_time,
+            "avg": avg_time,
+            "max": max_time,
         }
     else:
         return {"min": 0, "avg": 0, "max": 0}
@@ -86,7 +86,7 @@ def get_errors_rate(session: Session, filtered_logs: CTE) -> float:
         errors_per_100_req = (errors / total_requests) * 100
     else:
         errors_per_100_req = 0
-    return round(errors_per_100_req, 2)
+    return errors_per_100_req
 
 
 def get_method_usage(session: Session, filtered_logs: CTE) -> dict[str, int]:
@@ -138,8 +138,8 @@ def get_endpoint_stats(session: Session, filtered_logs: CTE) -> list[dict]:
         {
             "endpoint": endpoint,
             "requests": req,
-            "avg_time": round(avg_time, 2),
-            "errors_count": round(errors_count)
+            "avg_time": avg_time,
+            "errors_count": errors_count
         }
         for endpoint, req, avg_time, errors_count in endpoint_stats_db
     ]

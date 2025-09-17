@@ -198,7 +198,7 @@ def test_get_errors_rate_no_logs(session, empty_cte):
 def test_get_errors_rate_with_logs(session, cte):
     result = get_errors_rate(session, cte)
 
-    assert result == 42.86
+    assert result == 42.857142857142854
 
 
 def test_get_unique_ips_no_logs(session, empty_cte):
@@ -222,7 +222,7 @@ def test_get_res_time_stats_no_logs(session, empty_cte):
 def test_get_res_time_stats_with_logs(session, cte):
     result = get_res_time_stats(session, cte)
 
-    assert result == {"min": 0.10, "avg": 0.40, "max": 0.70}
+    assert result == {"min": 0.10, "avg": 0.39999999999999997, "max": 0.70}
 
 
 def test_get_time_series_no_logs(session, empty_cte):
