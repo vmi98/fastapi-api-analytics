@@ -5,7 +5,7 @@ from datetime import datetime
 
 from fastapi import Depends
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session
-from sqlalchemy import String, Integer, Numeric, DateTime, CheckConstraint, ForeignKey, create_engine
+from sqlalchemy import String, Integer, Float, DateTime, CheckConstraint, ForeignKey, create_engine
 
 
 class Base(DeclarativeBase):
@@ -34,7 +34,7 @@ class Log(Base):
     method: Mapped[str] = mapped_column(String(200))
     endpoint: Mapped[str] = mapped_column(String(200))
     ip: Mapped[Optional[str]] = mapped_column(String(45), default=None)
-    process_time: Mapped[float] = mapped_column(Numeric(10, 6))
+    process_time: Mapped[float] = mapped_column(Float(precision=6))
     status_code: Mapped[int] = mapped_column(Integer)
 
     api_key_id: Mapped[int] = mapped_column(ForeignKey("api_keys.id"))
