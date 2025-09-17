@@ -1,12 +1,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response, status
-from sqlmodel import select
+from sqlalchemy import select
 
 from .auth import get_api_key
 from .models import (
-    APIKey, Log, LogInput, LogOutput, SessionDep, DashboardResponse
+    APIKey, Log, SessionDep
 )
+from .schemas import LogInput, LogOutput, DashboardResponse
 from .services import compute_summary
 
 
@@ -21,7 +22,6 @@ def create_log(log: LogInput,
     db_log = Log(**log.model_dump(), api_key_id=api_key.id)
     session.add(db_log)
     session.commit()
-    session.refresh(db_log)
     return Response(status_code=status.HTTP_200_OK)
 
 
@@ -39,10 +39,12 @@ def show_raw_logs(session: SessionDep,
                   offset: int = 0,
                   limit: Annotated[int, Query(le=100)] = 100
                   ) -> list[LogOutput]:
-    logs = session.exec(
+    logs = session.scalars(
         select(Log)
         .where(Log.api_key_id == api_key.id)
         .offset(offset)
         .limit(limit)
     ).all()
+    if not logs:
+        return []
     return logs
