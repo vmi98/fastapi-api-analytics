@@ -23,6 +23,17 @@ class LogBase(BaseModel):
     process_time: float = Field(..., ge=0)
     status_code: int = Field(..., ge=100, le=599)
 
+
+class LogOutput(LogBase):
+    id: int
+
+    @field_validator("process_time", mode="after")
+    def round_process_time(cls, value):
+        return round(value, 2)
+
+
+class LogInput(LogBase):
+
     @model_validator(mode='before')
     def sanitize_log(cls, values):
         if isinstance(values, dict):
@@ -30,7 +41,7 @@ class LogBase(BaseModel):
                 value = values.get(key)
                 if isinstance(value, str):
                     values[key] = clean_string(value)
-            return values
+        return values
 
     @field_validator('method', mode='before')
     def validate_method(cls, value):
@@ -55,21 +66,6 @@ class LogBase(BaseModel):
         return value
 
 
-class LogOutput(LogBase):
-    id: int
-
-    @field_validator("process_time", mode="before")
-    def round_process_time(cls, value):
-        try:
-            return round(float(value), 2)
-        except Exception:
-            raise ValueError("process_time must be a float")
-
-
-class LogInput(LogBase):
-    pass
-
-
 class SummaryModel(BaseModel):
     total_requests: int | None = None
     unique_ips: int | None = None
@@ -78,12 +74,27 @@ class SummaryModel(BaseModel):
     max_response_time: float | None = None
     error_rate: float | None = None
 
+    @model_validator(mode='after')
+    def round_values(cls, values):
+        for field in ("avg_response_time", "min_response_time",
+                      "max_response_time", "error_rate"):
+            val = getattr(values, field)
+            if val:
+                setattr(values, field, round(val, 2))
+        return values
+
 
 class EndpointStatsEntry(BaseModel):
     endpoint: str | None = None
     requests: int | None = None
     avg_time: float | None = None
     errors_count: int | None = None
+
+    @model_validator(mode='after')
+    def round_values(cls, values):
+        if values.avg_time:
+            values.avg_time = round(values.avg_time, 2)
+        return values
 
 
 class TopIpEntry(BaseModel):
@@ -96,6 +107,14 @@ class TimeSeriesEntry(BaseModel):
     requests: int | None = None
     avg_time: float | None = None
     error_rate: float | None = None
+
+    @model_validator(mode='after')
+    def round_values(cls, values):
+        if values.avg_time:
+            values.avg_time = round(values.avg_time, 2)
+        if values.error_rate:
+            values.error_rate = round(values.error_rate, 2)
+        return values
 
 
 class DashboardResponse(BaseModel):
