@@ -17,7 +17,8 @@ It intercepts every API request and tracks:
 - Python
 - FastAPI
 - SQLite
-- SQLModel
+- Pydantic
+- SQLAlchemy
 - pytest, pytest-cov (testing)
 - Docker
 - uv (package management)
