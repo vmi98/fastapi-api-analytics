@@ -124,3 +124,19 @@ class DashboardResponse(BaseModel):
     status_codes: dict[int, int]
     top_ips: list[TopIpEntry]
     time_series: list[TimeSeriesEntry]
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+
+class UserOutput(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    username: str
+    hashed_password: str

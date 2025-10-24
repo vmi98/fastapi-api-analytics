@@ -21,6 +21,20 @@ class APIKey(Base):
     api_logs: Mapped[list[Log]] = relationship(back_populates="api_key",
                                                cascade="all, delete-orphan")
 
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_account.id"))
+    user_account: Mapped[User] = relationship(back_populates="api_keys")
+
+
+class User(Base):
+    __tablename__ = "user_account"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(30), unique=True)
+    hashed_password: Mapped[str] = mapped_column(String(64))
+
+    api_keys: Mapped[list[APIKey]] = relationship(back_populates="user_account",
+                                                  cascade="all, delete-orphan")
+
 
 class Log(Base):
     __tablename__ = "api_logs"
