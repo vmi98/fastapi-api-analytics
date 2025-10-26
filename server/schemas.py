@@ -139,4 +139,16 @@ class UserOutput(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     username: str
+
+
+class UserInDB(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    username: str
     hashed_password: str
+
+
+class RegisterForm(BaseModel):
+    model_config = {"extra": "forbid"}
+    username: str
+    password: str

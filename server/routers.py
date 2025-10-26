@@ -3,11 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import select
 
-from .auth import get_api_key
+from .auth import get_api_key, get_current_user
 from .models import (
     APIKey, Log, SessionDep
 )
-from .schemas import LogInput, LogOutput, DashboardResponse
+from .schemas import LogInput, LogOutput, DashboardResponse, UserInDB
 from .services import compute_summary
 
 
@@ -27,7 +27,8 @@ def create_log(log: LogInput,
 
 @router.get("/dashboard")
 def show_dashboard(session: SessionDep,
-                   api_key: APIKey = Depends(get_api_key)
+                   api_key: APIKey = Depends(get_api_key),
+                   user: UserInDB = Depends(get_current_user)
                    ) -> DashboardResponse:
     summary_data = compute_summary(session, api_key)
     return DashboardResponse(**summary_data)
@@ -36,6 +37,7 @@ def show_dashboard(session: SessionDep,
 @router.get("/raw_logs", response_model=list[LogOutput])
 def show_raw_logs(session: SessionDep,
                   api_key: APIKey = Depends(get_api_key),
+                  user: UserInDB = Depends(get_current_user),
                   offset: int = 0,
                   limit: Annotated[int, Query(le=100)] = 100
                   ) -> list[LogOutput]:

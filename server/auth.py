@@ -12,7 +12,7 @@ from fastapi import (
     status,
 )
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Form
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
@@ -20,7 +20,7 @@ from sqlalchemy import select
 from pwdlib import PasswordHash
 
 from .models import APIKey, User, SessionDep
-from .schemas import Token, TokenData, UserOutput
+from .schemas import Token, TokenData, UserOutput, UserInDB, RegisterForm
 
 
 load_dotenv()
@@ -55,7 +55,7 @@ def get_user(session: SessionDep, username: str):
     user = session.execute(select(User).where(User.name == username)).scalars().first()
 
     if user:
-        return UserOutput.model_validate(user)
+        return UserInDB.model_validate(user)
     return None
 
 
@@ -124,7 +124,7 @@ def generate_key_route(session: SessionDep) -> str:
     return key
 
 
-@auth_router.post("/token")
+@auth_router.post("/token", response_model=Token)
 def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: SessionDep
@@ -146,5 +146,22 @@ def login_for_access_token(
 @auth_router.get("/me/", response_model=UserOutput)
 def read_me(
     current_user: Annotated[UserOutput, Depends(get_current_user)]
-):
+) -> UserOutput:
     return current_user
+
+
+@auth_router.post("/register", response_model=UserOutput)
+def register_user(session: SessionDep, form_data: Annotated[RegisterForm, Form()]
+                  ) -> UserOutput:
+    username = form_data.username
+    hashed_password = get_password_hash(form_data.password)
+    if get_user(session, username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already exists"
+        )
+    user = User(name=username, hashed_password=hashed_password)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
