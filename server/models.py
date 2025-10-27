@@ -29,7 +29,7 @@ class User(Base):
     __tablename__ = "user_account"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(30), unique=True)
+    username: Mapped[str] = mapped_column(String(30), unique=True)
     hashed_password: Mapped[str] = mapped_column(String(64))
 
     api_keys: Mapped[list[APIKey]] = relationship(back_populates="user_account",

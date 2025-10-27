@@ -12,7 +12,7 @@ from fastapi import (
     status,
 )
 
-from fastapi import Depends, FastAPI, HTTPException, status, Form
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
@@ -52,7 +52,7 @@ def get_password_hash(password):
 
 
 def get_user(session: SessionDep, username: str):
-    user = session.execute(select(User).where(User.name == username)).scalars().first()
+    user = session.execute(select(User).where(User.username == username)).scalars().first()
 
     if user:
         return UserInDB.model_validate(user)
@@ -117,9 +117,10 @@ auth_router = APIRouter()
 
 
 @auth_router.post("/generate_key", response_model=str)
-def generate_key_route(session: SessionDep) -> str:
+def generate_key_route(session: SessionDep, user: UserInDB = Depends(get_current_user)
+                       ) -> str:
     key = generate_api_key()
-    session.add(APIKey(api_key=key))
+    session.add(APIKey(api_key=key, user_id=user.id))
     session.commit()
     return key
 
@@ -151,7 +152,7 @@ def read_me(
 
 
 @auth_router.post("/register", response_model=UserOutput)
-def register_user(session: SessionDep, form_data: Annotated[RegisterForm, Form()]
+def register_user(session: SessionDep, form_data: RegisterForm
                   ) -> UserOutput:
     username = form_data.username
     hashed_password = get_password_hash(form_data.password)
@@ -160,7 +161,7 @@ def register_user(session: SessionDep, form_data: Annotated[RegisterForm, Form()
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already exists"
         )
-    user = User(name=username, hashed_password=hashed_password)
+    user = User(username=username, hashed_password=hashed_password)
     session.add(user)
     session.commit()
     session.refresh(user)
