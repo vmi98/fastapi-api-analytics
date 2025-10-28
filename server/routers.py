@@ -7,7 +7,7 @@ from .auth import get_api_key, get_current_user
 from .models import (
     APIKey, Log, SessionDep
 )
-from .schemas import LogInput, LogOutput, DashboardResponse, UserInDB
+from .schemas import LogInput, LogOutput, DashboardResponse, UserInDB, TimeSeriesParam
 from .services import compute_summary
 
 
@@ -26,11 +26,12 @@ def create_log(log: LogInput,
 
 
 @router.get("/dashboard")
-def show_dashboard(session: SessionDep,
+def show_dashboard(time_series: Annotated[TimeSeriesParam, Query()],
+                   session: SessionDep,
                    api_key: APIKey = Depends(get_api_key),
                    user: UserInDB = Depends(get_current_user)
                    ) -> DashboardResponse:
-    summary_data = compute_summary(session, api_key)
+    summary_data = compute_summary(session, api_key, time_series)
     return DashboardResponse(**summary_data)
 
 

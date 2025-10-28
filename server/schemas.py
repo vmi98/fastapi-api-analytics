@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 import re
-from datetime import datetime
+from datetime import datetime, date
+from typing import Literal
 
 
 NULLABLE_VALUES = {"", " ", "null", "NULL", "None"}
@@ -153,3 +154,15 @@ class RegisterForm(BaseModel):
     model_config = {"extra": "forbid"}
     username: str
     password: str
+
+
+class TimeSeriesParam(BaseModel):
+    period: Literal["minutely", "hourly", "daily", "weekly", "monthly"] = "daily"
+    start_date: date
+    end_date: date
+
+    @model_validator(mode='after')
+    def sanitize_log(cls, values):
+        if values.start_date >= values.end_date:
+            raise ValueError('Start date must be before end date')
+        return values

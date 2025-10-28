@@ -2,10 +2,10 @@ from sqlalchemy import select, func, distinct, cast, Float
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import CTE
 from typing import Optional
-
+from datetime import datetime, date, time
 
 from .models import Log, APIKey
-from .schemas import DashboardResponse
+from .schemas import DashboardResponse, TimeSeriesParam
 
 EMPTY_DASHBOARD = {
     "summary": {
@@ -24,18 +24,24 @@ EMPTY_DASHBOARD = {
 }
 
 
-def get_time_series(session: Session, filtered_logs: CTE) -> list[dict]:
-    st_code_cond = filtered_logs.c.status_code.between(400, 599)
+def get_time_series(session: Session, filtered_logs: CTE, period: str) -> list[dict]:
+    mapping = {"minutely": '%Y-%m-%d %H:%M',
+               "hourly": '%Y-%m-%d %H',
+               "daily": '%Y-%m-%d',
+               "weekly": '%Y-%W',
+               "monthly": '%Y-%m'}
+
+    error_code = filtered_logs.c.status_code.between(400, 599)
     time_series_db = session.execute(
         select(
-            func.strftime('%Y-%m-%d', filtered_logs.c.created_at).label("timestamp"), # strftime - SQLite-specific
+            func.strftime(mapping[period], filtered_logs.c.created_at).label("timestamp"), # strftime - SQLite-specific
             func.count(filtered_logs.c.id).label("requests"),
             func.avg(filtered_logs.c.process_time).label("avg_time"),
-            (func.count().filter(st_code_cond) / cast(func.count(filtered_logs.c.id),
-                                                      Float)).label('error_rate')
+            (cast(func.count(filtered_logs.c.id) / func.count().filter(error_code) * 100,
+                  Float)).label('error_rate')
         )
-        .group_by(func.strftime('%Y-%m-%d', filtered_logs.c.created_at))
-        .order_by(func.strftime('%Y-%m-%d', filtered_logs.c.created_at))
+        .group_by(func.strftime(mapping[period], filtered_logs.c.created_at))
+        .order_by(func.strftime(mapping[period], filtered_logs.c.created_at).desc())
         .limit(5)
     ).all()
 
@@ -146,17 +152,23 @@ def get_endpoint_stats(session: Session, filtered_logs: CTE) -> list[dict]:
     return endpoint_stats
 
 
-def api_key_filter_logs(api_key: int) -> CTE:
-    return select(Log).where(Log.api_key_id == api_key).cte("filtered_logs")
+def api_key_filter_logs(api_key: int, start: date, end: date) -> CTE:
+    start_dt = datetime.combine(start, time.min)
+    end_dt = datetime.combine(end, time.max)
+    return select(Log).where(Log.api_key_id == api_key
+                             ).where(Log.created_at.between(start_dt, end_dt)
+                                     ).cte("filtered_logs")
 
 
 def get_total_req(session: Session, filtered_logs: CTE) -> Optional[int]:
     return session.scalar(select(func.count()).select_from(filtered_logs))
 
 
-def compute_summary(session: Session, api_key: APIKey
+def compute_summary(session: Session, api_key: APIKey, time_series: TimeSeriesParam
                     ) -> DashboardResponse:
-    filtered_logs = api_key_filter_logs(api_key.id)
+    filtered_logs = api_key_filter_logs(api_key.id,
+                                        time_series.start_date,
+                                        time_series.end_date)
 
     total_requests = get_total_req(session, filtered_logs)
 
@@ -179,5 +191,5 @@ def compute_summary(session: Session, api_key: APIKey
         "endpoint_stats": get_endpoint_stats(session, filtered_logs),
         "status_codes": get_status_codes(session, filtered_logs),
         "top_ips": get_top_ips(session, filtered_logs),
-        "time_series": get_time_series(session, filtered_logs)
+        "time_series": get_time_series(session, filtered_logs, time_series.period)
     }
