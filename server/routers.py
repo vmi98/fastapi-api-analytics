@@ -1,14 +1,16 @@
 from typing import Annotated
+from datetime import datetime, time
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import select
+
 
 from .auth import get_api_key, get_current_user
 from .models import (
     APIKey, Log, SessionDep
 )
-from .schemas import LogInput, LogOutput, DashboardResponse, UserInDB, TimeSeriesParam
-from .services import compute_summary
+from .schemas import LogInput, LogOutput, DashboardResponse, UserInDB, TimeSeriesParam, FilterParams
+from .services import compute_summary, build_log_filters
 
 
 router = APIRouter()
@@ -37,17 +39,17 @@ def show_dashboard(time_series: Annotated[TimeSeriesParam, Query()],
 
 @router.get("/raw_logs", response_model=list[LogOutput])
 def show_raw_logs(session: SessionDep,
+                  filter_query: FilterParams = Depends(),
                   api_key: APIKey = Depends(get_api_key),
-                  user: UserInDB = Depends(get_current_user),
-                  offset: int = 0,
-                  limit: Annotated[int, Query(le=100)] = 100
+                  user: UserInDB = Depends(get_current_user)
                   ) -> list[LogOutput]:
-    logs = session.scalars(
-        select(Log)
-        .where(Log.api_key_id == api_key.id)
-        .offset(offset)
-        .limit(limit)
-    ).all()
+    conditions = build_log_filters(filter_query, api_key.id)
+    st = (select(Log).where(*conditions)
+                     .order_by(filter_query.order_by)
+                     .offset(filter_query.offset)
+                     .limit(filter_query.limit))
+    logs = session.scalars(st).all()
+
     if not logs:
         return []
     return logs

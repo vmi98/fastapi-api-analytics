@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import datetime, date, time
 
 from .models import Log, APIKey
-from .schemas import DashboardResponse, TimeSeriesParam
+from .schemas import DashboardResponse, TimeSeriesParam, FilterParams
 
 EMPTY_DASHBOARD = {
     "summary": {
@@ -152,7 +152,7 @@ def get_endpoint_stats(session: Session, filtered_logs: CTE) -> list[dict]:
     return endpoint_stats
 
 
-def api_key_filter_logs(api_key: int, start: date, end: date) -> CTE:
+def filter_by_time_key(api_key: int, start: date, end: date) -> CTE:
     start_dt = datetime.combine(start, time.min)
     end_dt = datetime.combine(end, time.max)
     return select(Log).where(Log.api_key_id == api_key
@@ -166,9 +166,9 @@ def get_total_req(session: Session, filtered_logs: CTE) -> Optional[int]:
 
 def compute_summary(session: Session, api_key: APIKey, time_series: TimeSeriesParam
                     ) -> DashboardResponse:
-    filtered_logs = api_key_filter_logs(api_key.id,
-                                        time_series.start_date,
-                                        time_series.end_date)
+    filtered_logs = filter_by_time_key(api_key.id,
+                                       time_series.start_date,
+                                       time_series.end_date)
 
     total_requests = get_total_req(session, filtered_logs)
 
@@ -193,3 +193,34 @@ def compute_summary(session: Session, api_key: APIKey, time_series: TimeSeriesPa
         "top_ips": get_top_ips(session, filtered_logs),
         "time_series": get_time_series(session, filtered_logs, time_series.period)
     }
+
+
+def build_log_filters(param: FilterParams, api_key_id):
+    conditions = [Log.api_key_id == api_key_id]
+    if param.start_date:
+        start_dt = datetime.combine(param.start_date, time.min)
+        conditions.append(Log.created_at >= start_dt)
+
+    if param.end_date:
+        end_dt = datetime.combine(param.end_date, time.max)
+        conditions.append(Log.created_at <= end_dt)
+
+    if param.method:
+        conditions.append(Log.method == param.method)
+
+    if param.status_code:
+        conditions.append(Log.status_code == param.status_code)
+
+    if param.endpoint:
+        conditions.append(Log.endpoint.contains(param.endpoint))
+
+    if param.ip:
+        conditions.append(Log.ip == param.ip)
+
+    if param.process_time_min:
+        conditions.append(Log.process_time >= param.process_time_min)
+
+    if param.process_time_max:
+        conditions.append(Log.process_time <= param.process_time_max)
+
+    return conditions

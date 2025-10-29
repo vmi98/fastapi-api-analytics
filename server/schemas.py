@@ -162,7 +162,38 @@ class TimeSeriesParam(BaseModel):
     end_date: date
 
     @model_validator(mode='after')
-    def sanitize_log(cls, values):
+    def check_dates(cls, values):
         if values.start_date >= values.end_date:
             raise ValueError('Start date must be before end date')
         return values
+
+
+class FilterParams(BaseModel):
+    limit: int = Field(100, gt=0, le=100)
+    offset: int = Field(0, ge=0)
+    order_by: Literal["created_at", "method", "endpoint", "ip",
+                      "process_time", "status_code"] = "created_at"
+    start_date: date | None = None
+    end_date: date = date.today()
+    method: Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", None] = None
+    status_code: int | None = None
+    endpoint: str | None = None
+    ip: str | None = None
+    process_time_min: float | None = None
+    process_time_max: float | None = None
+
+    @model_validator(mode='after')
+    def check_dates(cls, values):
+        if not values.start_date or not values.end_date:
+            return values
+        if values.start_date > values.end_date:
+            raise ValueError('Start date must be before end date')
+        return values
+
+    @model_validator(mode='after')
+    def check_time(cls, values):
+        if not values.process_time_min or not values.process_time_max:
+            return values
+
+        if values.process_time_min >= values.process_time_max:
+            raise ValueError('Min time must be less than max time')
