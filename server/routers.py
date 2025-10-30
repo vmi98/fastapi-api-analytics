@@ -64,7 +64,7 @@ def download_report(session: SessionDep,
                     time_series: TimeSeriesParam = Depends(),
                     api_key: APIKey = Depends(get_api_key),
                     user: UserInDB = Depends(get_current_user)
-                    ) -> StreamingResponse:
+                    ) -> Response:
     stats = compute_summary(session, api_key, time_series)
     report_dic = build_report(stats,
                               time_series.start_date.strftime("%Y-%m-%d"),
@@ -73,8 +73,8 @@ def download_report(session: SessionDep,
         report_file = serialize_report_bytes(report_dic)
         headers = {"Content-Disposition": 'attachment; filename="api_stats_report"',
                    "Cache-Control": "no-store"}
-        return StreamingResponse(report_file,
-                                 media_type="application/json",
-                                 headers=headers)
+        return Response(report_file.getvalue(),
+                        media_type="application/json",
+                        headers=headers)
     else:
         pass
