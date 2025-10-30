@@ -197,3 +197,9 @@ class FilterParams(BaseModel):
 
         if values.process_time_min >= values.process_time_max:
             raise ValueError('Min time must be less than max time')
+
+
+class ReportMetadata(BaseModel):
+    report_name: str
+    generated_at: str
+    period: dict[str, str]

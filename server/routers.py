@@ -1,7 +1,8 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from datetime import datetime, time
 
 from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 
 
@@ -9,8 +10,10 @@ from .auth import get_api_key, get_current_user
 from .models import (
     APIKey, Log, SessionDep
 )
-from .schemas import LogInput, LogOutput, DashboardResponse, UserInDB, TimeSeriesParam, FilterParams
-from .services import compute_summary, build_log_filters
+from .schemas import (LogInput, LogOutput, DashboardResponse, UserInDB,
+                      TimeSeriesParam, FilterParams)
+from .services import (compute_summary, build_log_filters, build_report,
+                       serialize_report_bytes)
 
 
 router = APIRouter()
@@ -27,14 +30,14 @@ def create_log(log: LogInput,
     return Response(status_code=status.HTTP_200_OK)
 
 
-@router.get("/dashboard")
-def show_dashboard(time_series: Annotated[TimeSeriesParam, Query()],
-                   session: SessionDep,
+@router.get("/dashboard", response_model=DashboardResponse)
+def show_dashboard(session: SessionDep,
+                   time_series: TimeSeriesParam = Depends(),
                    api_key: APIKey = Depends(get_api_key),
                    user: UserInDB = Depends(get_current_user)
                    ) -> DashboardResponse:
     summary_data = compute_summary(session, api_key, time_series)
-    return DashboardResponse(**summary_data)
+    return summary_data
 
 
 @router.get("/raw_logs", response_model=list[LogOutput])
@@ -53,3 +56,25 @@ def show_raw_logs(session: SessionDep,
     if not logs:
         return []
     return logs
+
+
+@router.get("/report")
+def download_report(session: SessionDep,
+                    format: Literal["json", "pdf"],
+                    time_series: TimeSeriesParam = Depends(),
+                    api_key: APIKey = Depends(get_api_key),
+                    user: UserInDB = Depends(get_current_user)
+                    ) -> StreamingResponse:
+    stats = compute_summary(session, api_key, time_series)
+    report_dic = build_report(stats,
+                              time_series.start_date.strftime("%Y-%m-%d"),
+                              time_series.end_date.strftime("%Y-%m-%d"))
+    if format == "json":
+        report_file = serialize_report_bytes(report_dic)
+        headers = {"Content-Disposition": 'attachment; filename="api_stats_report"',
+                   "Cache-Control": "no-store"}
+        return StreamingResponse(report_file,
+                                 media_type="application/json",
+                                 headers=headers)
+    else:
+        pass

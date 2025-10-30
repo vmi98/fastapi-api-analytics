@@ -1,3 +1,5 @@
+import json
+from io import BytesIO
 from sqlalchemy import select, func, distinct, cast, Float
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import CTE
@@ -5,7 +7,7 @@ from typing import Optional
 from datetime import datetime, date, time
 
 from .models import Log, APIKey
-from .schemas import DashboardResponse, TimeSeriesParam, FilterParams
+from .schemas import DashboardResponse, TimeSeriesParam, FilterParams, ReportMetadata
 
 EMPTY_DASHBOARD = {
     "summary": {
@@ -173,12 +175,12 @@ def compute_summary(session: Session, api_key: APIKey, time_series: TimeSeriesPa
     total_requests = get_total_req(session, filtered_logs)
 
     if not total_requests:
-        return EMPTY_DASHBOARD
+        return DashboardResponse(**EMPTY_DASHBOARD)
 
     res_time_stats = get_res_time_stats(session, filtered_logs)
     error_rate = get_errors_rate(session, filtered_logs)
 
-    return {  # type:ignore
+    result = {  # type:ignore
         "summary": {
             "total_requests": total_requests,
             "unique_ips": get_unique_ips(session, filtered_logs),
@@ -193,9 +195,10 @@ def compute_summary(session: Session, api_key: APIKey, time_series: TimeSeriesPa
         "top_ips": get_top_ips(session, filtered_logs),
         "time_series": get_time_series(session, filtered_logs, time_series.period)
     }
+    return DashboardResponse(**result)
 
 
-def build_log_filters(param: FilterParams, api_key_id):
+def build_log_filters(param: FilterParams, api_key_id: int):
     conditions = [Log.api_key_id == api_key_id]
     if param.start_date:
         start_dt = datetime.combine(param.start_date, time.min)
@@ -224,3 +227,17 @@ def build_log_filters(param: FilterParams, api_key_id):
         conditions.append(Log.process_time <= param.process_time_max)
 
     return conditions
+
+
+def build_report(stats: DashboardResponse, start: str, end: str) -> dict:
+    report_metadata = ReportMetadata(report_name="API Traffic Summary",
+                                     generated_at=datetime.now().isoformat(),
+                                     period={"start": start, "end": end})
+    return {
+        "report_metadata": report_metadata.model_dump(),
+        "report": stats.model_dump()
+    }
+
+
+def serialize_report_bytes(report_data: dict) -> BytesIO:
+    return BytesIO(json.dumps(report_data, indent=2).encode("utf-8"))
