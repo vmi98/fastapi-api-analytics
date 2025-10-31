@@ -1,4 +1,3 @@
-import json
 from io import BytesIO
 from sqlalchemy import select, func, distinct, cast, Float
 from sqlalchemy.orm import Session
@@ -237,7 +236,3 @@ def build_report(stats: DashboardResponse, start: str, end: str) -> dict:
         "report_metadata": report_metadata.model_dump(),
         "report": stats.model_dump()
     }
-
-
-def serialize_report_bytes(report_data: dict) -> BytesIO:
-    return BytesIO(json.dumps(report_data, indent=2).encode("utf-8"))
