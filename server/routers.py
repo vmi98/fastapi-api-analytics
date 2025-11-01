@@ -1,4 +1,5 @@
 import json
+from io import BytesIO
 from typing import Annotated, Literal
 from datetime import datetime, time
 
@@ -13,7 +14,8 @@ from .models import (
 )
 from .schemas import (LogInput, LogOutput, DashboardResponse, UserInDB,
                       TimeSeriesParam, FilterParams)
-from .services import (compute_summary, build_log_filters, build_report)
+from .services import (compute_summary, build_log_filters, get_report_data,
+                       build_report_json, build_report_pdf)
 
 
 router = APIRouter()
@@ -65,16 +67,14 @@ def download_report(session: SessionDep,
                     api_key: APIKey = Depends(get_api_key),
                     user: UserInDB = Depends(get_current_user)
                     ) -> Response:
-    stats = compute_summary(session, api_key, time_series)
-    report_dict = build_report(stats,
-                               time_series.start_date.strftime("%Y-%m-%d"),
-                               time_series.end_date.strftime("%Y-%m-%d"))
-    if format == "json":
-        report_file = json.dumps(report_dict, indent=2).encode("utf-8")
-        headers = {"Content-Disposition": 'attachment; filename="api_stats_report"',
-                   "Cache-Control": "no-store"}
-        return Response(report_file,
-                        media_type="application/json",
-                        headers=headers)
-    else:
-        pass
+    report_data = get_report_data(session, api_key, time_series)
+    mapping = {
+        'json': build_report_json,
+        'pdf': build_report_pdf
+    }
+    report_file = mapping[format](report_data)
+    headers = {"Content-Disposition": f'attachment; filename="api_stats_report.{format}"',
+               "Cache-Control": "no-store"}
+    return Response(report_file,
+                    media_type="application/json",
+                    headers=headers)

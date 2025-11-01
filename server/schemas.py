@@ -68,12 +68,16 @@ class LogInput(LogBase):
 
 
 class SummaryModel(BaseModel):
-    total_requests: int | None = None
-    unique_ips: int | None = None
-    avg_response_time: float | None = None
-    min_response_time: float | None = None
-    max_response_time: float | None = None
-    error_rate: float | None = None
+    total_requests: int | None = Field(None,
+                                       serialization_alias='Total number of requests')
+    unique_ips: int | None = Field(None, serialization_alias='Number of unique IPs')
+    avg_response_time: float | None = Field(
+        None, serialization_alias='Average response time (ms)')
+    min_response_time: float | None = Field(
+        None, serialization_alias='Minimal response time (ms)')
+    max_response_time: float | None = Field(
+        None, serialization_alias='Maximum response time (ms)')
+    error_rate: float | None = Field(None, serialization_alias='Error rate (%)')
 
     @model_validator(mode='after')
     def round_values(cls, values):
@@ -127,33 +131,37 @@ class DashboardResponse(BaseModel):
     time_series: list[TimeSeriesEntry]
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+class ReportMetadata(BaseModel):
+    report_name: str
+    generated_at: datetime
+    period: dict[str, date]
 
 
-class TokenData(BaseModel):
-    username: str | None = None
+class ReportMetadataPdf(BaseModel):
+    report_name: str
+    generated_at: str
+    period: dict[str, str]
 
 
-class UserOutput(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    username: str
-
-
-class UserInDB(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    username: str
-    hashed_password: str
+class ReportBase(BaseModel):
+    report_metadata: ReportMetadata
+    report: DashboardResponse
 
 
-class RegisterForm(BaseModel):
-    model_config = {"extra": "forbid"}
-    username: str
-    password: str
+class ReportJson(ReportBase):
+    pass
+
+
+class ReportPdf(BaseModel):
+    report_metadata: ReportMetadataPdf
+    report: DashboardResponse
+
+    @field_validator("report_metadata", mode="before")
+    def datetime_to_string(cls, value):
+        value["generated_at"] = value["generated_at"].strftime("%H:%M, %d.%m.%Y")
+        value["period"]["start"] = value["period"]["start"].strftime("%d.%m.%Y")
+        value["period"]["end"] = value["period"]["end"].strftime("%d.%m.%Y")
+        return value
 
 
 class TimeSeriesParam(BaseModel):
@@ -199,7 +207,30 @@ class FilterParams(BaseModel):
             raise ValueError('Min time must be less than max time')
 
 
-class ReportMetadata(BaseModel):
-    report_name: str
-    generated_at: str
-    period: dict[str, str]
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+
+class UserOutput(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    username: str
+
+
+class UserInDB(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    hashed_password: str
+
+
+class RegisterForm(BaseModel):
+    model_config = {"extra": "forbid"}
+    username: str
+    password: str

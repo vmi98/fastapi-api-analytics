@@ -1,12 +1,22 @@
+import json
 from io import BytesIO
 from sqlalchemy import select, func, distinct, cast, Float
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import CTE
 from typing import Optional
 from datetime import datetime, date, time
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table,
+    TableStyle, Image, PageBreak, KeepTogether
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib import colors
+from reportlab.lib.units import inch
 
 from .models import Log, APIKey
-from .schemas import DashboardResponse, TimeSeriesParam, FilterParams, ReportMetadata
+from .schemas import (DashboardResponse, TimeSeriesParam, FilterParams,
+                      ReportMetadata, ReportBase, ReportJson, ReportPdf)
 
 EMPTY_DASHBOARD = {
     "summary": {
@@ -197,7 +207,7 @@ def compute_summary(session: Session, api_key: APIKey, time_series: TimeSeriesPa
     return DashboardResponse(**result)
 
 
-def build_log_filters(param: FilterParams, api_key_id: int):
+def build_log_filters(param: FilterParams, api_key_id: int):  # rewrite in smarter way?
     conditions = [Log.api_key_id == api_key_id]
     if param.start_date:
         start_dt = datetime.combine(param.start_date, time.min)
@@ -228,11 +238,90 @@ def build_log_filters(param: FilterParams, api_key_id: int):
     return conditions
 
 
-def build_report(stats: DashboardResponse, start: str, end: str) -> dict:
-    report_metadata = ReportMetadata(report_name="API Traffic Summary",
-                                     generated_at=datetime.now().isoformat(),
-                                     period={"start": start, "end": end})
-    return {
-        "report_metadata": report_metadata.model_dump(),
-        "report": stats.model_dump()
-    }
+def get_report_data(session: Session, api_key: APIKey, time_series: TimeSeriesParam
+                    ) -> ReportBase:
+    stats = compute_summary(session, api_key, time_series)
+    metadata = ReportMetadata(report_name="API Traffic Analysis",
+                              generated_at=datetime.now(),
+                              period={"start": time_series.start_date,
+                                      "end": time_series.end_date})
+    return ReportBase(report_metadata=metadata, report=stats)
+
+
+def build_report_json(report_data: ReportBase) -> bytes:
+    report_data_formated = ReportJson(**report_data.model_dump())
+    return report_data_formated.model_dump_json(indent=2).encode("utf-8")
+
+
+def build_report_pdf(report_data: ReportBase) -> bytes:
+    report_data_formated = ReportPdf(**report_data.model_dump())
+    with BytesIO() as buffer:
+        create_pdf_report(buffer, report_data_formated)
+        pdf_bytes = buffer.getvalue()
+    return pdf_bytes
+
+
+def create_pdf_report(buffer, report_data: ReportPdf):
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    story = []
+    title_style = ParagraphStyle(
+        'Title',
+        parent=getSampleStyleSheet()['Title'],
+        textColor=colors.HexColor("#332211"),
+    )
+
+    heading_style = ParagraphStyle(
+        'Heading',
+        parent=getSampleStyleSheet()['Heading1'],
+        textColor=colors.HexColor("#332211"),
+        alignment=1,
+        spaceBefore=5,
+        spaceAfter=5
+    )
+    summary_style = ParagraphStyle(
+        'Summary',
+        parent=getSampleStyleSheet()['Normal'],
+        fontSize=14,
+        leading=16,
+        textColor=colors.HexColor("#1c2e4a"),
+        spaceBefore=5,
+        spaceAfter=5
+    )
+    metadata_style = ParagraphStyle(
+        'Metadata',
+        parent=getSampleStyleSheet()['Normal'],
+        fontName='Helvetica-Oblique',
+        textColor=colors.HexColor("#1c2e4a"),
+        spaceBefore=5,
+        spaceAfter=5
+    )
+
+    title = Paragraph(report_data.report_metadata.report_name, title_style)
+    story.append(title)
+
+    generation_date = report_data.report_metadata.generated_at
+    period = report_data.report_metadata.period
+    meta_data_text = f"""
+    <i><b>Generation date:</b> {generation_date}<br/>
+    <b>Time period:</b> {period['start']} - {period['end']}</i>
+    """
+    meta_data = Paragraph(meta_data_text, metadata_style)
+    story.append(meta_data)
+
+    story.append(Spacer(1, 8))
+
+    summary_title = Paragraph("Summary", heading_style)
+    story.append(summary_title)
+
+    summary_parts = []
+    for k, v in report_data.report.summary.model_dump(by_alias=True).items():
+        summary_parts.append(f"<b>{k}:</b> {v}<br/>")
+    summary = " ".join(summary_parts)
+    story.append(Paragraph(summary, summary_style))
+
+    story.append(Spacer(1, 8))
+
+    visuals_title = Paragraph("Visual Data Overview", heading_style)
+    story.append(visuals_title)
+
+    doc.build(story)
