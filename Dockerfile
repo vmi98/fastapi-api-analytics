@@ -34,7 +34,8 @@ RUN mkdir -p /app/db && \
     groupadd -r app && \
     useradd -r -g app -m app && \
     chown -R app:app /app/db && \
-    chmod -R u+rw /app/db
+    chmod -R u+rw /app/db && \
+    chown -R app:app /app
 
 ENV HOME=/home/app
 
