@@ -13,6 +13,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.cm as cm
 
 from .models import Log, APIKey
 from .schemas import (DashboardResponse, TimeSeriesParam, FilterParams,
@@ -261,6 +264,24 @@ def build_report_pdf(report_data: ReportBase) -> bytes:
     return pdf_bytes
 
 
+def create_pie_chart(data, lables):
+    buffer = BytesIO()
+    plt.style.use('_mpl-gallery-nogrid')
+    colors = cm.get_cmap('Blues')(np.linspace(0.2, 0.7, len(data)))
+    fig, ax = plt.subplots()
+    ax.pie(data, colors=colors, labels=lables, labeldistance=0.7, radius=3,
+           center=(4, 4), wedgeprops={"linewidth": 1, "edgecolor": "white"},
+           textprops={'fontsize': 7},
+           frame=True)
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    plt.savefig(buffer, format='png', bbox_inches="tight")
+    plt.close()
+    buffer.seek(0)
+    return buffer
+
+
 def create_pdf_report(buffer, report_data: ReportPdf):
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     story = []
@@ -295,6 +316,16 @@ def create_pdf_report(buffer, report_data: ReportPdf):
         spaceBefore=5,
         spaceAfter=5
     )
+    plot_style = ParagraphStyle(
+        'Summary',
+        parent=getSampleStyleSheet()['Normal'],
+        alignment=1,
+        fontSize=14,
+        leading=16,
+        textColor=colors.HexColor("#1c2e4a"),
+        spaceBefore=5,
+        spaceAfter=5
+    )
 
     title = Paragraph(report_data.report_metadata.report_name, title_style)
     story.append(title)
@@ -315,7 +346,7 @@ def create_pdf_report(buffer, report_data: ReportPdf):
 
     summary_parts = []
     for k, v in report_data.report.summary.model_dump(by_alias=True).items():
-        summary_parts.append(f"<b>{k}:</b> {v}<br/>")
+        summary_parts.append(f"{k}: {v}<br/>")
     summary = " ".join(summary_parts)
     story.append(Paragraph(summary, summary_style))
 
@@ -323,5 +354,27 @@ def create_pdf_report(buffer, report_data: ReportPdf):
 
     visuals_title = Paragraph("Visual Data Overview", heading_style)
     story.append(visuals_title)
+
+    methods = []
+    methods_data = []
+    for k, v in report_data.report.method_usage.items():
+        methods.append(k)
+        methods_data.append(v)
+
+    status_codes = []
+    status_codes_data = []
+    for k, v in report_data.report.status_codes.items():
+        status_codes.append(k)
+        status_codes_data.append(v)
+
+    method_usage = Image(create_pie_chart(methods_data, methods), width=220, height=220)
+    status_codes = Image(create_pie_chart(status_codes_data, status_codes), width=220, height=220)
+    method_usage_caption = Paragraph("Methods usage", plot_style)
+    status_codes_caption = Paragraph("Status codes", plot_style)
+    table = Table([
+        [method_usage, status_codes],
+        [method_usage_caption, status_codes_caption]
+    ], hAlign='CENTER')
+    story.append(table)
 
     doc.build(story)
