@@ -268,7 +268,7 @@ def create_pie_chart(data, lables):
     buffer = BytesIO()
     plt.style.use('_mpl-gallery-nogrid')
     colors = cm.get_cmap('Blues')(np.linspace(0.2, 0.7, len(data)))
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(dpi=150)
     ax.pie(data, colors=colors, labels=lables, labeldistance=0.7, radius=3,
            center=(4, 4), wedgeprops={"linewidth": 1, "edgecolor": "white"},
            textprops={'fontsize': 7},
@@ -276,14 +276,29 @@ def create_pie_chart(data, lables):
 
     ax.set_xticks([])
     ax.set_yticks([])
-    plt.savefig(buffer, format='png', bbox_inches="tight")
+    plt.savefig(buffer, format='jpeg', bbox_inches="tight", dpi=150)
+    plt.close()
+    buffer.seek(0)
+    return buffer
+
+
+def create_bar_chart(data, labels):
+    buffer = BytesIO()
+    plt.style.use('_mpl-gallery')
+    y = data
+    x = labels
+    fig, ax = plt.subplots(figsize=(3.2, 3.2), dpi=150)
+    ax.bar(x, y, edgecolor="white", linewidth=0.7)
+    ax.set_ylabel('requests', fontsize=10)
+    plt.xticks(rotation=90, fontsize=10)
+    plt.savefig(buffer, format='png', bbox_inches="tight", dpi=150)
     plt.close()
     buffer.seek(0)
     return buffer
 
 
 def create_pdf_report(buffer, report_data: ReportPdf):
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20, bottomMargin=20)
     story = []
     title_style = ParagraphStyle(
         'Title',
@@ -339,8 +354,6 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     meta_data = Paragraph(meta_data_text, metadata_style)
     story.append(meta_data)
 
-    story.append(Spacer(1, 8))
-
     summary_title = Paragraph("Summary", heading_style)
     story.append(summary_title)
 
@@ -349,8 +362,6 @@ def create_pdf_report(buffer, report_data: ReportPdf):
         summary_parts.append(f"{k}: {v}<br/>")
     summary = " ".join(summary_parts)
     story.append(Paragraph(summary, summary_style))
-
-    story.append(Spacer(1, 8))
 
     visuals_title = Paragraph("Visual Data Overview", heading_style)
     story.append(visuals_title)
@@ -371,10 +382,24 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     status_codes = Image(create_pie_chart(status_codes_data, status_codes), width=220, height=220)
     method_usage_caption = Paragraph("Methods usage", plot_style)
     status_codes_caption = Paragraph("Status codes", plot_style)
+
     table = Table([
         [method_usage, status_codes],
         [method_usage_caption, status_codes_caption]
     ], hAlign='CENTER')
     story.append(table)
+
+    story.append(Spacer(1, 5))
+
+    ips = []
+    ips_data = []
+    for dic in report_data.report.top_ips:
+        ips.append(dic.ip)
+        ips_data.append(dic.requests)
+
+    top_ip = Image(create_bar_chart(ips_data, ips), width=270, height=270)
+    top_ip_caption = Paragraph("Top IPs", plot_style)
+    story.append(top_ip)
+    story.append(top_ip_caption)
 
     doc.build(story)
