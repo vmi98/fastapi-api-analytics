@@ -323,14 +323,6 @@ def create_pdf_report(buffer, report_data: ReportPdf):
         spaceBefore=5,
         spaceAfter=5
     )
-    metadata_style = ParagraphStyle(
-        'Metadata',
-        parent=getSampleStyleSheet()['Normal'],
-        fontName='Helvetica-Oblique',
-        textColor=colors.HexColor("#1c2e4a"),
-        spaceBefore=5,
-        spaceAfter=5
-    )
     plot_style = ParagraphStyle(
         'Summary',
         parent=getSampleStyleSheet()['Normal'],
@@ -351,7 +343,7 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     <i><b>Generation date:</b> {generation_date}<br/>
     <b>Time period:</b> {period['start']} - {period['end']}</i>
     """
-    meta_data = Paragraph(meta_data_text, metadata_style)
+    meta_data = Paragraph(meta_data_text, summary_style)
     story.append(meta_data)
 
     summary_title = Paragraph("Summary", heading_style)
@@ -394,8 +386,9 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     ips = []
     ips_data = []
     for dic in report_data.report.top_ips:
-        ips.append(dic.ip)
-        ips_data.append(dic.requests)
+        if dic.ip:
+            ips.append(dic.ip)
+            ips_data.append(dic.requests)
 
     top_ip = Image(create_bar_chart(ips_data, ips), width=270, height=270)
     top_ip_caption = Paragraph("Top IPs", plot_style)
