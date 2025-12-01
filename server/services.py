@@ -297,6 +297,39 @@ def create_bar_chart(data, labels):
     return buffer
 
 
+def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels):
+    buffer = BytesIO()
+    plt.style.use('_mpl-gallery-nogrid')
+    fig, ax1 = plt.subplots(figsize=(8, 8))
+    plt.xticks(rotation=90, fontsize=12)
+    plt.yticks(fontsize=12)
+
+    ax1.set_xlabel('endpoints', fontsize=12)
+    ax1.set_ylabel('requests', fontsize=12)
+
+    bottom = np.zeros(len(bar_labels))
+
+    for boolean, weight_count in bar_data.items():
+        p = ax1.bar(bar_labels, weight_count, label=boolean, bottom=bottom)
+        bottom += weight_count
+    
+    ax1.legend(loc="upper right", fontsize=12)
+
+    ax2 = ax1.twinx()
+    color = 'tab:red'
+
+    ax2.set_ylabel('response time avg', fontsize=12, color=color)
+    ax2.tick_params(axis='y', labelsize=12, labelcolor=color)
+    ax2.plot(bar_labels, graph_data, color=color)
+
+    fig.tight_layout()
+
+    plt.savefig(buffer, format='png', bbox_inches="tight", dpi=150)
+    plt.close()
+    buffer.seek(0)
+    return buffer
+
+
 def create_pdf_report(buffer, report_data: ReportPdf):
     doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20, bottomMargin=20)
     story = []
@@ -394,5 +427,21 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     top_ip_caption = Paragraph("Top IPs", plot_style)
     story.append(top_ip)
     story.append(top_ip_caption)
+
+    story.append(Spacer(1, 5))
+
+    endpoints = []
+    endpoints_data = {"Success": [], "Fails": []}
+    response_time = []
+    for dic in report_data.report.endpoint_stats:
+        endpoints.append(dic.endpoint)
+        response_time.append(dic.avg_time)
+        endpoints_data["Fails"].append(dic.errors_count)
+        endpoints_data["Success"].append(dic.requests - dic.errors_count) # think if None
+
+    endpoints_plot = Image(create_two_plots_same_x(endpoints_data, response_time, endpoints), width=400, height=400)
+    endpoints_plot_caption = Paragraph("Endpoints statistics", plot_style)
+    story.append(endpoints_plot)
+    story.append(endpoints_plot_caption)
 
     doc.build(story)
