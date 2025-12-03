@@ -51,12 +51,12 @@ def get_time_series(session: Session, filtered_logs: CTE, period: str) -> list[d
             func.strftime(mapping[period], filtered_logs.c.created_at).label("timestamp"), # strftime - SQLite-specific
             func.count(filtered_logs.c.id).label("requests"),
             func.avg(filtered_logs.c.process_time).label("avg_time"),
-            (cast(func.count(filtered_logs.c.id) / func.count().filter(error_code) * 100,
+            (cast(func.count().filter(error_code) * 100 / func.count(filtered_logs.c.id),
                   Float)).label('error_rate')
         )
         .group_by(func.strftime(mapping[period], filtered_logs.c.created_at))
         .order_by(func.strftime(mapping[period], filtered_logs.c.created_at).desc())
-        .limit(5)
+        .limit(50)
     ).all()
 
     time_series = [
@@ -297,15 +297,16 @@ def create_bar_chart(data, labels):
     return buffer
 
 
-def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels):
+def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels,
+                            xlabel, ylabel1, ylabel2):
     buffer = BytesIO()
     plt.style.use('_mpl-gallery-nogrid')
     fig, ax1 = plt.subplots(figsize=(8, 8))
     plt.xticks(rotation=90, fontsize=12)
     plt.yticks(fontsize=12)
 
-    ax1.set_xlabel('endpoints', fontsize=12)
-    ax1.set_ylabel('requests', fontsize=12)
+    ax1.set_xlabel(xlabel, fontsize=12)
+    ax1.set_ylabel(ylabel1, fontsize=12)
 
     bottom = np.zeros(len(bar_labels))
 
@@ -318,7 +319,7 @@ def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels):
     ax2 = ax1.twinx()
     color = 'tab:red'
 
-    ax2.set_ylabel('response time avg', fontsize=12, color=color)
+    ax2.set_ylabel(ylabel2, fontsize=12, color=color)
     ax2.tick_params(axis='y', labelsize=12, labelcolor=color)
     ax2.plot(bar_labels, graph_data, color=color)
 
@@ -439,9 +440,33 @@ def create_pdf_report(buffer, report_data: ReportPdf):
         endpoints_data["Fails"].append(dic.errors_count)
         endpoints_data["Success"].append(dic.requests - dic.errors_count) # think if None
 
-    endpoints_plot = Image(create_two_plots_same_x(endpoints_data, response_time, endpoints), width=400, height=400)
+    endpoints_plot = Image(create_two_plots_same_x(
+        endpoints_data, response_time, endpoints,
+        'endpoints', 'requests', 'response time avg'
+    ), width=400, height=400)
     endpoints_plot_caption = Paragraph("Endpoints statistics", plot_style)
     story.append(endpoints_plot)
     story.append(endpoints_plot_caption)
+
+    story.append(Spacer(1, 5))
+
+    timestamp = []
+    time_series_data = {"Success": [], "Fails": []}
+    response_time = []
+    for dic in report_data.report.time_series:
+        timestamp.append(dic.timestamp)
+        response_time.append(dic.avg_time)
+        fails = dic.error_rate*dic.requests/100
+        success = dic.requests - fails
+        time_series_data["Fails"].append(fails)
+        time_series_data["Success"].append(success)
+
+    time_series_plot = Image(create_two_plots_same_x(
+        time_series_data, response_time, timestamp,
+        'timestamp', 'requests', 'response time avg'
+    ), width=400, height=400)
+    time_series_caption = Paragraph("Time series statistics", plot_style)
+    story.append(time_series_plot)
+    story.append(time_series_caption)
 
     doc.build(story)
