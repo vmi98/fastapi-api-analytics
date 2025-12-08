@@ -301,26 +301,26 @@ def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels,
                             xlabel, ylabel1, ylabel2):
     buffer = BytesIO()
     plt.style.use('_mpl-gallery-nogrid')
-    fig, ax1 = plt.subplots(figsize=(8, 8))
-    plt.xticks(rotation=90, fontsize=12)
+    fig, ax1 = plt.subplots(figsize=(14, 6))
+    plt.xticks(rotation=90, fontsize=20)
     plt.yticks(fontsize=12)
 
-    ax1.set_xlabel(xlabel, fontsize=12)
-    ax1.set_ylabel(ylabel1, fontsize=12)
+    ax1.set_xlabel(xlabel, fontsize=20)
+    ax1.set_ylabel(ylabel1, fontsize=20)
 
     bottom = np.zeros(len(bar_labels))
 
     for boolean, weight_count in bar_data.items():
         p = ax1.bar(bar_labels, weight_count, label=boolean, bottom=bottom)
         bottom += weight_count
-    
-    ax1.legend(loc="upper right", fontsize=12)
+
+    ax1.legend(loc="upper right", fontsize=20)
 
     ax2 = ax1.twinx()
     color = 'tab:red'
 
-    ax2.set_ylabel(ylabel2, fontsize=12, color=color)
-    ax2.tick_params(axis='y', labelsize=12, labelcolor=color)
+    ax2.set_ylabel(ylabel2, fontsize=20, color=color)
+    ax2.tick_params(axis='y', labelsize=20, labelcolor=color)
     ax2.plot(bar_labels, graph_data, color=color)
 
     fig.tight_layout()
@@ -443,7 +443,7 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     endpoints_plot = Image(create_two_plots_same_x(
         endpoints_data, response_time, endpoints,
         'endpoints', 'requests', 'response time avg'
-    ), width=400, height=400)
+    ), width=430, height=200)
     endpoints_plot_caption = Paragraph("Endpoints statistics", plot_style)
     story.append(endpoints_plot)
     story.append(endpoints_plot_caption)
@@ -464,7 +464,7 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     time_series_plot = Image(create_two_plots_same_x(
         time_series_data, response_time, timestamp,
         'timestamp', 'requests', 'response time avg'
-    ), width=400, height=400)
+    ), width=430, height=200)
     time_series_caption = Paragraph("Time series statistics", plot_style)
     story.append(time_series_plot)
     story.append(time_series_caption)
