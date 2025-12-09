@@ -134,7 +134,7 @@ class DashboardResponse(BaseModel):
 class ReportMetadata(BaseModel):
     report_name: str
     generated_at: datetime
-    period: dict[str, date]
+    period: dict[str, datetime]
 
 
 class ReportMetadataPdf(BaseModel):
@@ -159,15 +159,15 @@ class ReportPdf(BaseModel):
     @field_validator("report_metadata", mode="before")
     def datetime_to_string(cls, value):
         value["generated_at"] = value["generated_at"].strftime("%H:%M, %d.%m.%Y")
-        value["period"]["start"] = value["period"]["start"].strftime("%d.%m.%Y")
-        value["period"]["end"] = value["period"]["end"].strftime("%d.%m.%Y")
+        value["period"]["start"] = value["period"]["start"].strftime("%H:%M, %d.%m.%Y")
+        value["period"]["end"] = value["period"]["end"].strftime("%H:%M, %d.%m.%Y")
         return value
 
 
 class TimeSeriesParam(BaseModel):
     period: Literal["minutely", "hourly", "daily", "weekly", "monthly"] = "daily"
-    start_date: date
-    end_date: date
+    start_date: datetime
+    end_date: datetime
 
     @model_validator(mode='after')
     def check_dates(cls, values):

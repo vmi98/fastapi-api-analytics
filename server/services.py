@@ -166,11 +166,11 @@ def get_endpoint_stats(session: Session, filtered_logs: CTE) -> list[dict]:
     return endpoint_stats
 
 
-def filter_by_time_key(api_key: int, start: date, end: date) -> CTE:
-    start_dt = datetime.combine(start, time.min)
-    end_dt = datetime.combine(end, time.max)
+def filter_by_time_key(api_key: int, start: datetime, end: datetime) -> CTE:
+    #start_dt = datetime.combine(start, time.min)
+    #end_dt = datetime.combine(end, time.max)
     return select(Log).where(Log.api_key_id == api_key
-                             ).where(Log.created_at.between(start_dt, end_dt)
+                             ).where(Log.created_at.between(start, end)
                                      ).cte("filtered_logs")
 
 
