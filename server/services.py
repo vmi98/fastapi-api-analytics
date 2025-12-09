@@ -383,6 +383,13 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     meta_data = Paragraph(meta_data_text, summary_style)
     story.append(meta_data)
 
+    if not report_data.report.summary.total_requests:
+        no_logs_warning = Paragraph("There is no logs corresponding to your params",
+                                    heading_style)
+        story.append(no_logs_warning)
+        doc.build(story)
+        return True
+
     summary_title = Paragraph("Summary", heading_style)
     story.append(summary_title)
 
@@ -425,11 +432,11 @@ def create_pdf_report(buffer, report_data: ReportPdf):
         if dic.ip:
             ips.append(dic.ip)
             ips_data.append(dic.requests)
-
-    top_ip = Image(create_bar_chart(ips_data, ips), width=270, height=270)
-    top_ip_caption = Paragraph("Top IPs", plot_style)
-    story.append(top_ip)
-    story.append(top_ip_caption)
+    if ips:
+        top_ip = Image(create_bar_chart(ips_data, ips), width=270, height=270)
+        top_ip_caption = Paragraph("Top IPs", plot_style)
+        story.append(top_ip)
+        story.append(top_ip_caption)
 
     story.append(Spacer(1, 5))
 
@@ -440,7 +447,7 @@ def create_pdf_report(buffer, report_data: ReportPdf):
         endpoints.append(dic.endpoint)
         response_time.append(dic.avg_time)
         endpoints_data["Fails"].append(dic.errors_count)
-        endpoints_data["Success"].append(dic.requests - dic.errors_count) # think if None
+        endpoints_data["Success"].append(dic.requests - dic.errors_count)
 
     endpoints_plot = Image(create_two_plots_same_x(
         endpoints_data, response_time, endpoints,
