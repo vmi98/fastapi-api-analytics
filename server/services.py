@@ -268,11 +268,11 @@ def create_pie_chart(data, lables):
     buffer = BytesIO()
     plt.style.use('_mpl-gallery-nogrid')
     colors = cm.get_cmap('Blues')(np.linspace(0.2, 0.7, len(data)))
-    fig, ax = plt.subplots(dpi=150)
-    ax.pie(data, colors=colors, labels=lables, labeldistance=0.7, radius=3,
-           center=(4, 4), wedgeprops={"linewidth": 1, "edgecolor": "white"},
-           textprops={'fontsize': 7},
-           frame=True)
+    fig, ax = plt.subplots(figsize=(3.2, 3.2), dpi=150)
+    ax.pie(data, colors=colors, labels=lables, autopct='%1.1f%%', pctdistance=0.9,
+           labeldistance=0.5, radius=1, center=(0, 0),
+           wedgeprops={"linewidth": 1, "edgecolor": "white"},
+           textprops={'fontsize': 8}, frame=True)
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -311,7 +311,7 @@ def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels,
     bottom = np.zeros(len(bar_labels))
 
     for boolean, weight_count in bar_data.items():
-        p = ax1.bar(bar_labels, weight_count, label=boolean, bottom=bottom)
+        ax1.bar(bar_labels, weight_count, label=boolean, bottom=bottom)
         bottom += weight_count
 
     ax1.legend(loc="upper right", fontsize=20)
@@ -332,7 +332,8 @@ def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels,
 
 
 def create_pdf_report(buffer, report_data: ReportPdf):
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20, bottomMargin=20)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20, bottomMargin=20,
+                            rightMargin=20, leftMargin=20)
     story = []
     title_style = ParagraphStyle(
         'Title',
@@ -404,8 +405,9 @@ def create_pdf_report(buffer, report_data: ReportPdf):
         status_codes.append(k)
         status_codes_data.append(v)
 
-    method_usage = Image(create_pie_chart(methods_data, methods), width=220, height=220)
-    status_codes = Image(create_pie_chart(status_codes_data, status_codes), width=220, height=220)
+    method_usage = Image(create_pie_chart(methods_data, methods), width=265, height=265)
+    status_codes = Image(create_pie_chart(status_codes_data, status_codes),
+                         width=265, height=265)
     method_usage_caption = Paragraph("Methods usage", plot_style)
     status_codes_caption = Paragraph("Status codes", plot_style)
 
