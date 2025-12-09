@@ -303,7 +303,7 @@ def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels,
     plt.style.use('_mpl-gallery-nogrid')
     fig, ax1 = plt.subplots(figsize=(14, 6))
     plt.xticks(rotation=90, fontsize=20)
-    plt.yticks(fontsize=12)
+    plt.yticks(fontsize=20)
 
     ax1.set_xlabel(xlabel, fontsize=20)
     ax1.set_ylabel(ylabel1, fontsize=20)
@@ -332,13 +332,14 @@ def create_two_plots_same_x(bar_data: dict, graph_data, bar_labels,
 
 
 def create_pdf_report(buffer, report_data: ReportPdf):
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20, bottomMargin=20,
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20, bottomMargin=10,
                             rightMargin=20, leftMargin=20)
     story = []
     title_style = ParagraphStyle(
         'Title',
         parent=getSampleStyleSheet()['Title'],
         textColor=colors.HexColor("#332211"),
+        fontSize=14
     )
 
     heading_style = ParagraphStyle(
@@ -346,27 +347,28 @@ def create_pdf_report(buffer, report_data: ReportPdf):
         parent=getSampleStyleSheet()['Heading1'],
         textColor=colors.HexColor("#332211"),
         alignment=1,
-        spaceBefore=5,
-        spaceAfter=5
+        spaceBefore=3,
+        spaceAfter=3,
+        fontSize=14,
     )
     summary_style = ParagraphStyle(
         'Summary',
         parent=getSampleStyleSheet()['Normal'],
-        fontSize=14,
+        fontSize=12,
         leading=16,
         textColor=colors.HexColor("#1c2e4a"),
-        spaceBefore=5,
-        spaceAfter=5
+        spaceBefore=3,
+        spaceAfter=3
     )
     plot_style = ParagraphStyle(
         'Summary',
         parent=getSampleStyleSheet()['Normal'],
         alignment=1,
-        fontSize=14,
+        fontSize=12,
         leading=16,
         textColor=colors.HexColor("#1c2e4a"),
-        spaceBefore=5,
-        spaceAfter=5
+        spaceBefore=3,
+        spaceAfter=3
     )
 
     title = Paragraph(report_data.report_metadata.report_name, title_style)
@@ -417,8 +419,6 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     ], hAlign='CENTER')
     story.append(table)
 
-    story.append(Spacer(1, 5))
-
     ips = []
     ips_data = []
     for dic in report_data.report.top_ips:
@@ -445,7 +445,7 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     endpoints_plot = Image(create_two_plots_same_x(
         endpoints_data, response_time, endpoints,
         'endpoints', 'requests', 'response time avg'
-    ), width=430, height=200)
+    ), width=500, height=250)
     endpoints_plot_caption = Paragraph("Endpoints statistics", plot_style)
     story.append(endpoints_plot)
     story.append(endpoints_plot_caption)
@@ -466,7 +466,7 @@ def create_pdf_report(buffer, report_data: ReportPdf):
     time_series_plot = Image(create_two_plots_same_x(
         time_series_data, response_time, timestamp,
         'timestamp', 'requests', 'response time avg'
-    ), width=430, height=200)
+    ), width=500, height=250)
     time_series_caption = Paragraph("Time series statistics", plot_style)
     story.append(time_series_plot)
     story.append(time_series_caption)
