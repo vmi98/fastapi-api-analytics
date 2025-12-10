@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator, ConfigD
 import re
 from datetime import datetime, date
 from typing import Literal
+from fastapi import HTTPException
 
 
 NULLABLE_VALUES = {"", " ", "null", "NULL", "None"}
@@ -172,7 +173,7 @@ class TimeSeriesParam(BaseModel):
     @model_validator(mode='after')
     def check_dates(cls, values):
         if values.start_date >= values.end_date:
-            raise ValueError('Start date must be before end date')
+            raise HTTPException(status_code=422, detail="Start date must be before end date")
         return values
 
 
@@ -195,7 +196,7 @@ class FilterParams(BaseModel):
         if not values.start_date or not values.end_date:
             return values
         if values.start_date > values.end_date:
-            raise ValueError('Start date must be before end date')
+            raise HTTPException(status_code=422, detail="Start date must be before end date")
         return values
 
     @model_validator(mode='after')
@@ -204,7 +205,7 @@ class FilterParams(BaseModel):
             return values
 
         if values.process_time_min >= values.process_time_max:
-            raise ValueError('Min time must be less than max time')
+            raise HTTPException(status_code=422, detail="Min time must be less than max time")
 
 
 class Token(BaseModel):
