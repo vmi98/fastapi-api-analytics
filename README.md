@@ -2,6 +2,8 @@
 
 FastAPI analytics service that tracks API usage (endpoints, response times, errors, etc) and displays insights. NOTE: Compatible only with FastAPI. 
 
+[API Docs](https://fastapi-api-analytics.onrender.com/docs)
+
 ## Features
 
 It intercepts every API request and tracks:  
@@ -19,14 +21,19 @@ It intercepts every API request and tracks:
 - SQLite
 - Pydantic
 - SQLAlchemy
+- alembic
+- matplotlib, reportlab
+- pyjw
 - pytest, pytest-cov (testing)
 - Docker
 - uv (package management)
 - flake8 (linting)
 
 ## Use
-1.  Generate your unique API key by sending POST request to [here](https://fastapi-api-analytics.onrender.com/generate_key) or `/generate_key endpoint`(if you run locally)
-2.  Copy folder client_middleware to your project into the same project directory as `main.py` (httpx and python-dotenv required), and add this to your `main.py`:
+1. Register by sending POST request to  `/register' endpoint with your username and password.
+2. Get your access token by sending POST request to  `/token' endpoint with your username and password.
+3.  Generate your unique API key by sending POST request to  `/generate_key' with your access token. 
+4.  Copy folder client_middleware to your project into the same project directory as `main.py` (httpx and python-dotenv required), and add this to your `main.py`:
 
 ```
 from client_middleware.middleware import create_tracking_middleware  
@@ -35,12 +42,12 @@ app = FastAPI()
 app.middleware("http")(create_tracking_middleware(api_key="api-key"))
 # add this and replace api-key with your generated API key
 ```
-Set the API_BASE variable in your `.env` file (either https://fastapi-api-analytics.onrender.com or your localhost URL).
+Set the API_BASE variable in your `.env` file.
 
-3. Your API will now log and store all incoming requests' data.
-Logs data can be viewed [here](https://fastapi-api-analytics.onrender.com/raw_logs) or `/raw_logs` endpoint (if you run locally) through GET request with  your API key set as X-API-Key in the headers.
+4. Your API will now log and store all incoming requests' data.
+Logs data can be viewed on  `/raw_logs` endpoint  through GET request with  your API key set as X-API-Key  and token in the headers. You can filter and order logs by date, time, method, ip, status code, endpoint, process time.
 
-Analytics data can be viewed [here](https://fastapi-api-analytics.onrender.com/dashboard) or `/dashboard` endpoint (if you run locally) via GET request with  your API key set as X-API-Key in the headers.
+Analytics data can be viewed on `/dashboard` endpoint  via GET request with  your API key set as X-API-Key and token in the headers.
 
 Example Response (JSON) to `/dashboard` endpoint:
 ```
@@ -155,6 +162,13 @@ Example Response (JSON) to `/dashboard` endpoint:
     ]
 }
 ```
+You can download json report with dashboard via GET request with  your API key set as X-API-Key and token in the headers to '/report' endpoint and 'json' as 'format' param.
+
+You can download pdf report with graphs based on dashboard via GET request with  your API key set as X-API-Key and token in the headers to '/report' endpoint and 'pdf' as 'format' param.
+
+Graphs examples:
+![example_pie_chart](./images/Screenshot_pie.png)
+![example_graphs](./images/Screenshot_graphs.png)
 
 ## Run with Docker
 ```
@@ -172,5 +186,3 @@ docker run --rm fastapi-analytics uv run flake8 .  # linting
 ## Deployment Notes
 
 Dockerized and deployed on [Render](https://fastapi-api-analytics.onrender.com/)
-
-[API Docs](https://fastapi-api-analytics.onrender.com/docs)
